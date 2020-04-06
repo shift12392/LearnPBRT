@@ -348,3 +348,8 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/LearnPBRT/Saved
+/LearnPBRT/Binaries/Win64
+/LearnPBRT/DerivedDataCache
+/LearnPBRT/Intermediate
+/LearnPBRT/LearnPBRT.sln
