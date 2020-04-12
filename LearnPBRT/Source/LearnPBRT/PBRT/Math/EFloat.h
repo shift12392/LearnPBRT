@@ -2,11 +2,11 @@
 
 
 #include "Math.h"
+#include <assert.h>
 
 
 namespace URay
 {
-	/*
 	// EFloat Declarations
 	class EFloat {
 	public:
@@ -25,12 +25,12 @@ namespace URay
 				high = NextFloatUp(v + err);
 			}
 			// Store high precision reference value in _EFloat_
-#ifndef NDEBUG
+#if !defined(NDEBUG) 
 			vPrecise = v;
 			Check();
 #endif  // NDEBUG
 		}
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 		EFloat(float v, long double lD, float err) : EFloat(v, err) {
 			vPrecise = lD;
 			Check();
@@ -39,7 +39,7 @@ namespace URay
 		EFloat operator+(EFloat ef) const {
 			EFloat r;
 			r.v = v + ef.v;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = vPrecise + ef.vPrecise;
 #endif  // DEBUG
 			// Interval arithemetic addition, with the result rounded away from
@@ -54,7 +54,7 @@ namespace URay
 		float GetAbsoluteError() const { return high - low; }
 		float UpperBound() const { return high; }
 		float LowerBound() const { return low; }
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 		float GetRelativeError() const {
 			return std::abs((vPrecise - v) / vPrecise);
 		}
@@ -63,7 +63,7 @@ namespace URay
 		EFloat operator-(EFloat ef) const {
 			EFloat r;
 			r.v = v - ef.v;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = vPrecise - ef.vPrecise;
 #endif
 			r.low = NextFloatDown(LowerBound() - ef.UpperBound());
@@ -74,39 +74,39 @@ namespace URay
 		EFloat operator*(EFloat ef) const {
 			EFloat r;
 			r.v = v * ef.v;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = vPrecise * ef.vPrecise;
 #endif
-			Float prod[4] = {
+			float prod[4] = {
 				LowerBound() * ef.LowerBound(), UpperBound() * ef.LowerBound(),
 				LowerBound() * ef.UpperBound(), UpperBound() * ef.UpperBound() };
 			r.low = NextFloatDown(
-				std::min(std::min(prod[0], prod[1]), std::min(prod[2], prod[3])));
+				FMath::Min(FMath::Min(prod[0], prod[1]), FMath::Min(prod[2], prod[3])));
 			r.high = NextFloatUp(
-				std::max(std::max(prod[0], prod[1]), std::max(prod[2], prod[3])));
+				FMath::Max(FMath::Max(prod[0], prod[1]), FMath::Max(prod[2], prod[3])));
 			r.Check();
 			return r;
 		}
 		EFloat operator/(EFloat ef) const {
 			EFloat r;
 			r.v = v / ef.v;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = vPrecise / ef.vPrecise;
 #endif
 			if (ef.low < 0 && ef.high > 0) {
 				// Bah. The interval we're dividing by straddles zero, so just
 				// return an interval of everything.
-				r.low = -Infinity;
-				r.high = Infinity;
+				r.low = -std::numeric_limits<float>::infinity();
+				r.high = std::numeric_limits<float>::infinity();
 			}
 			else {
-				Float div[4] = {
+				float div[4] = {
 					LowerBound() / ef.LowerBound(), UpperBound() / ef.LowerBound(),
 					LowerBound() / ef.UpperBound(), UpperBound() / ef.UpperBound() };
 				r.low = NextFloatDown(
-					std::min(std::min(div[0], div[1]), std::min(div[2], div[3])));
+					FMath::Min(FMath::Min(div[0], div[1]), FMath::Min(div[2], div[3])));
 				r.high = NextFloatUp(
-					std::max(std::max(div[0], div[1]), std::max(div[2], div[3])));
+					FMath::Max(FMath::Max(div[0], div[1]), FMath::Max(div[2], div[3])));
 			}
 			r.Check();
 			return r;
@@ -114,7 +114,7 @@ namespace URay
 		EFloat operator-() const {
 			EFloat r;
 			r.v = -v;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = -vPrecise;
 #endif
 			r.low = -high;
@@ -124,10 +124,9 @@ namespace URay
 		}
 		inline bool operator==(EFloat fe) const { return v == fe.v; }
 		inline void Check() const {
-			if (!std::isinf(low) && !std::isnan(low) && !std::isinf(high) &&
-				!std::isnan(high))
-				CHECK_LE(low, high);
-#ifndef NDEBUG
+			if (!std::isinf(low) && !std::isnan(low) && !std::isinf(high) && !std::isnan(high))
+				/* CHECK_LE(low, high); */  check(low <= high);
+#if !defined(NDEBUG)
 			if (!std::isinf(v) && !std::isnan(v)) {
 				CHECK_LE(LowerBound(), vPrecise);
 				CHECK_LE(vPrecise, UpperBound());
@@ -139,7 +138,7 @@ namespace URay
 			v = ef.v;
 			low = ef.low;
 			high = ef.high;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			vPrecise = ef.vPrecise;
 #endif
 		}
@@ -149,26 +148,26 @@ namespace URay
 				v = ef.v;
 				low = ef.low;
 				high = ef.high;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 				vPrecise = ef.vPrecise;
 #endif
 			}
 			return *this;
 		}
 
-		friend std::ostream &operator<<(std::ostream &os, const EFloat &ef) {
-			os << StringPrintf("v=%f (%a) - [%f, %f]",
-				ef.v, ef.v, ef.low, ef.high);
-#ifndef NDEBUG
-			os << StringPrintf(", precise=%.30Lf", ef.vPrecise);
-#endif // !NDEBUG
-			return os;
-		}
+//		friend std::ostream &operator<<(std::ostream &os, const EFloat &ef) {
+//			os << StringPrintf("v=%f (%a) - [%f, %f]",
+//				ef.v, ef.v, ef.low, ef.high);
+//#if !defined(NDEBUG)
+//			os << StringPrintf(", precise=%.30Lf", ef.vPrecise);
+//#endif // !NDEBUG
+//			return os;
+//		}
 
 	private:
 		// EFloat Private Data
 		float v, low, high;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 		long double vPrecise;
 #endif  // NDEBUG
 		friend inline EFloat sqrt(EFloat fe);
@@ -189,7 +188,7 @@ namespace URay
 	inline EFloat sqrt(EFloat fe) {
 		EFloat r;
 		r.v = std::sqrt(fe.v);
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 		r.vPrecise = std::sqrt(fe.vPrecise);
 #endif
 		r.low = NextFloatDown(std::sqrt(fe.low));
@@ -206,7 +205,7 @@ namespace URay
 			// The entire interval is less than zero.
 			EFloat r;
 			r.v = -fe.v;
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = -fe.vPrecise;
 #endif
 			r.low = -fe.high;
@@ -218,11 +217,11 @@ namespace URay
 			// The interval straddles zero.
 			EFloat r;
 			r.v = std::abs(fe.v);
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 			r.vPrecise = std::abs(fe.vPrecise);
 #endif
 			r.low = 0;
-			r.high = std::max(-fe.low, fe.high);
+			r.high = FMath::Max(-fe.low, fe.high);
 			r.Check();
 			return r;
 		}
@@ -235,7 +234,7 @@ namespace URay
 		if (discrim < 0.) return false;
 		double rootDiscrim = std::sqrt(discrim);
 
-		EFloat floatRootDiscrim(rootDiscrim, MachineEpsilon * rootDiscrim);
+		EFloat floatRootDiscrim(rootDiscrim, std::numeric_limits<float>::epsilon() * rootDiscrim);
 
 		// Compute quadratic _t_ values
 		EFloat q;
@@ -249,5 +248,5 @@ namespace URay
 		return true;
 	}
 
-	*/
+	
 }
